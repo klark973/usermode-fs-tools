@@ -1,0 +1,18 @@
+Briefly
+=======
+
+extfs2dir:  Unpack contents of the extfs image.
+extfsinfo:  Output information about extfs image.
+dev2extfs:  Populate /dev nodes to an existing extfs image.
+dir2extfs:  Pack directory contents to an extfs image.
+dir2vfat:   Pack directory contents into vfat image.
+grub2dirs:  User-mode grub-install to the few directories.
+img2parts:  Split disk image to the separate partition images.
+parts2img:  Unite separate partitions to the single disk image.
+vfat2dir:   Unpack contents of the vfat image.
+
+There are two ways for work with extfs filesystems in user-mode:
+
+1. Inside Hasher (SUID'ed chroot) as 'rooter'.
+2. Use fakeroot in the regular user environment.
+
