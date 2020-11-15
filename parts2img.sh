@@ -66,6 +66,26 @@ fatal() {
 	exit 1
 }
 
+human2size() {
+	local input="$1" rv=
+	local slen="${#input}"
+	slen="$(($slen - 1))"
+	local data="${input:0:$slen}"
+	local lchar="${input:$slen:1}"
+
+	case "$lchar" in
+	K) rv="$(($data / 1024))";;
+	M) rv="$data";;
+	G) rv="$(($data * 1024))";;
+	T) rv="$(($data * 1024 * 1024))";;
+	[0-9]) rv="$input";;
+	esac
+
+	[ -n "$rv" -a "$rv" -gt 0 ] 2>/dev/null ||
+		fatal "Invalid size: '%s'." "$input"
+	printf "%s" "$rv"
+}
+
 parse_args() {
 	local s_opts="+gnqs:vh"
 	local l_opts="guid-gpt,no-clean,quiet,swap:,version,help"
@@ -88,7 +108,7 @@ parse_args() {
 		-s|--swap)
 			[ -n "${2-}" ] ||
 				fatal "$msg"
-			swapsize="$2"
+			swapsize="$(human2size "$2")"
 			shift
 			;;
 		-v|--version)

@@ -111,6 +111,26 @@ fatal() {
 	exit 1
 }
 
+human2size() {
+	local input="$1" rv=
+	local slen="${#input}"
+	slen="$(($slen - 1))"
+	local data="${input:0:$slen}"
+	local lchar="${input:$slen:1}"
+
+	case "$lchar" in
+	K) rv="$(($data / 1024))";;
+	M) rv="$data";;
+	G) rv="$(($data * 1024))";;
+	T) rv="$(($data * 1024 * 1024))";;
+	[0-9]) rv="$input";;
+	esac
+
+	[ -n "$rv" -a "$rv" -gt 0 ] 2>/dev/null ||
+		fatal "Invalid size: '%s'." "$input"
+	printf "%s" "$rv"
+}
+
 parse_args() {
 	local s_opts="+aC:d:f:G:g:I:i:L:MnN:o:qr:T:t:U:vh"
 	local l_opts="append,mindev,no-clean,quiet,version,help"
@@ -166,7 +186,7 @@ parse_args() {
 			;;
 		-r)	[ -n "${2-}" ] ||
 				fatal "$msg"
-			reserved="${2-}"
+			reserved="$(human2size "$2")"
 			shift
 			;;
 		-t)	case "${2-}" in
@@ -217,7 +237,7 @@ parse_args() {
 	[ $append -eq 0 -o -z "$passthrough" ] ||
 		fatal "In append mode mke2fs options can't be used."
 	if [ $# -eq 1 ]; then
-		capacity="$1"
+		capacity="$(human2size "$1")"
 		shift
 	fi
 }

@@ -91,6 +91,26 @@ fatal() {
 	exit 1
 }
 
+human2size() {
+	local input="$1" rv=
+	local slen="${#input}"
+	slen="$(($slen - 1))"
+	local data="${input:0:$slen}"
+	local lchar="${input:$slen:1}"
+
+	case "$lchar" in
+	K) rv="$(($data / 1024))";;
+	M) rv="$data";;
+	G) rv="$(($data * 1024))";;
+	T) rv="$(($data * 1024 * 1024))";;
+	[0-9]) rv="$input";;
+	esac
+
+	[ -n "$rv" -a "$rv" -gt 0 ] 2>/dev/null ||
+		fatal "Invalid size: '%s'." "$input"
+	printf "%s" "$rv"
+}
+
 parse_args() {
 	local s_opts="+Aab:D:F:f:H:i:M:m:n:Pp:R:r:S:s:qvh"
 	local l_opts="append,invariant,pad-space,quiet,version,help"
@@ -129,7 +149,7 @@ parse_args() {
 			;;
 		-p)	[ -n "${2-}" ] ||
 				fatal "$msg"
-			reserved="${2-}"
+			reserved="$(human2size "$2")"
 			shift
 			;;
 		-q|--quiet)
@@ -172,7 +192,7 @@ parse_args() {
 	[ $quiet -ne 0 ] ||
 		passthrough="$passthrough -v"
 	if [ $# -eq 1 ]; then
-		capacity="$1"
+		capacity="$(human2size "$1")"
 		shift
 	fi
 }
