@@ -211,8 +211,14 @@ parts_details() {
 			continue
 		fi
 		printf "Name: part%s-%s.img\n" "$p" "$ext"
-		(echo "i"; echo "$p"; echo "q") |fdisk -- "$image" |
-			sed -E 's/^\s+//g' |sed '1,/^Device:/d' |sed '/^$/,$d'
+		( echo "i"
+		  [ $n_parts -eq 1 ] ||
+			echo "$p"
+		  echo "q"
+		) |fdisk -- "$image" |
+			sed -E 's/^\s+//g' |
+			sed '1,/^Device:/d' |
+			sed '/^$/,$d'
 		printf "\n"
 	done
 }
