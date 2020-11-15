@@ -1,5 +1,5 @@
-Briefly
-=======
+Briefly:
+========
 
 extfs2dir:  Unpack contents of the extfs image.
 extfsinfo:  Output information about extfs image.
@@ -15,4 +15,16 @@ There are two ways for work with extfs filesystems in user-mode:
 
 1. Inside Hasher (SUID'ed chroot) as 'rooter'.
 2. Use fakeroot in the regular user environment.
+
+Coming soon:
+============
+
+extfs-cat:  Output contents of the specified file to stdout.
+extfs-ls:   List contents of the specified path.
+isorepack:  Repack ALT ISO-9660 to another ISO-9660 image.
+vfat-cat:   Output contents of the specified file to stdout.
+vfat-ls:    List contents of the specified path.
+vfatinfo:   Output information about vfat image.
+
+man pages
 
