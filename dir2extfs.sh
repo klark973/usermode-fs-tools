@@ -314,6 +314,23 @@ append_files() {
 	fi
 }
 
+reserve_space() {
+	local addsize="$(($imgsize / 20))"
+
+	if [ $ext4new -ne 0 ]; then
+		[ $addsize -ge 10 ] ||
+			addsize=10
+	elif [ "$fstype" = "ext2" ]; then
+		[ $addsize -ge 5 ] ||
+			addsize=5
+	else
+		[ $addsize -ge 8 ] ||
+			addsize=8
+	fi
+
+	imgsize="$(($imgsize + $addsize))"
+}
+
 
 # Entry point
 export TMPDIR="${TMPDIR:-/tmp}"
@@ -401,19 +418,7 @@ if [ -n "$capacity" -a "$capacity" -gt 0 ] 2>/dev/null; then
 	imgsize="$capacity"
 else
 	imgsize="$(du -sxm -- "$srcdir" |cut -f1)"
-	addsize="$(($imgsize / 20))"
-	if [ $ext4new -ne 0 ]; then
-		[ $addsize -ge 10 ] ||
-			addsize=10
-	elif [ "$fstype" = "ext2" ]; then
-		[ $addsize -ge 5 ] ||
-			addsize=5
-	else
-		[ $addsize -ge 8 ] ||
-			addsize=8
-	fi
-	imgsize="$(($imgsize + $addsize))"
-	unset addsize
+	reserve_space
 	capacity=
 fi
 verbose "imgsize=$imgsize"
@@ -451,6 +456,7 @@ if [ -z "$capacity" -o -n "$reserved" ]; then
 	if [ -n "$reserved" ]; then
 		verbose "Resizing $fstype image..."
 		imgsize="$(($imgsize + $reserved))"
+		reserve_space
 		if [ $quiet -eq 0 ]; then
 			$prefix resize2fs -f -p -- "$image" "${imgsize}M"
 		else
