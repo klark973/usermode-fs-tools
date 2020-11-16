@@ -107,9 +107,9 @@ spawn() {
 }
 
 parse_args() {
-	local s_opts="+bdgl:m:qr:Sst:uvh"
+	local s_opts="+bdgl:m:qr:Sst:U:uvh"
 	local l_opts="bios-only,dual-boot,guid-gpt,libdir:,module:,quiet,root:"
-	      l_opts="$l_opts,swap-part,secure-boot,target:,uefi-only,version,help"
+	      l_opts="$l_opts,swap-part,secure-boot,target:,uefi-only,uuid:,version,help"
 	local msg="Invalid command-line usage, try '-h' for help."
 
 	l_opts=$(getopt -n "$progname" -o "$s_opts" -l "$l_opts" -- "$@") ||
@@ -150,6 +150,8 @@ parse_args() {
 		-r|--root)
 			[ -n "${2-}" ] ||
 				fatal "$msg"
+			warning "Deprecated option found: '%s'." "$1"
+			warning "This option was renamed to '%s'." "--uuid"
 			rootuuid="$2"
 			shift
 			;;
@@ -175,6 +177,12 @@ parse_args() {
 				;;
 			esac
 			platform="$2"
+			shift
+			;;
+		-U|--uuid)
+			[ -n "${2-}" ] ||
+				fatal "$msg"
+			rootuuid="$2"
 			shift
 			;;
 		-u|--uefi-only)
