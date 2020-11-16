@@ -13,6 +13,7 @@ Packager: Leonid Krivoshein <klark@altlinux.org>
 Requires: usermode-extfs-tools = %version-%release
 Requires: usermode-vfat-tools  = %version-%release
 Requires: usermode-image-tools = %version-%release
+Requires: usermode-isofs-tools = %version-%release
 
 %description
 This package contains common build parts and requirements.
@@ -77,6 +78,27 @@ Requires: grub-ieee1275
 %description -n usermode-image-tools
 This package contains user-mode boot loader and disk image utilities.
 
+%package -n usermode-isofs-tools
+Summary: User-mode ISO-9660 image repack utilities
+Group: File tools
+BuildArch: noarch
+
+Requires: coreutils
+Requires: cpio
+Requires: gawk
+Requires: getopt
+Requires: p7zip
+Requires: rpm
+Requires: rsync
+Requires: sed
+Requires: service
+Requires: usermode-extfs-tools = %version-%release
+Requires: usermode-vfat-tools  = %version-%release
+Requires: usermode-image-tools = %version-%release
+
+%description -n usermode-isofs-tools
+This package contains user-mode ISO-9660 image repack utilities.
+
 %prep
 %setup
 
@@ -105,6 +127,9 @@ done
 %_bindir/grub2dirs
 %_bindir/img2parts
 %_bindir/parts2img
+
+%files -n usermode-isofs-tools
+%_bindir/iso2stick
 
 %changelog
 * Thu Oct 15 2020 Leonid Krivoshein <klark@altlinux.org> 1.0-alt1

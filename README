@@ -8,6 +8,7 @@ dir2extfs:  Pack directory contents to an extfs image.
 dir2vfat:   Pack directory contents into vfat image.
 grub2dirs:  User-mode grub-install to the few directories.
 img2parts:  Split disk image to the separate partition images.
+iso2stick:  Repack ALT ISO-9660 to the USB-stick disk image.
 parts2img:  Unite separate partitions to the single disk image.
 vfat2dir:   Unpack contents of the vfat image.
 
