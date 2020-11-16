@@ -41,20 +41,23 @@ show_help() {
 	Usage: $progname [<options>...] [--] [<partsdir>]
 
 	Options:
-	  -b, --bios-only        Make BIOS-only boottable system.
-	  -d, --dual-boot        Use all available boot loaders.
-	  -g, --guid-gpt         Use GPT disk label instead MBR.
-	  -l, --libdir=<path>    Use images and modules under
-	                         specified grub directory <path>
-	                         (default is "$libdir").
-	  -m, --module=<name>    Pre-load specified grub module.
+	  -b, --bios-only        Make BIOS-only boottable system on x86.
+	  -d, --dual-boot        Add both 32-bit and 64-bit UEFI firmware
+	                         boot loaders for 64-bit target system,
+	                         such as x86_64 or aarch64.
+	  -g, --guid-gpt         Use GUID/GPT disk label instead BIOS/MBR.
+	  -l, --libdir=<PATH>    Use images and modules under specified
+	                         grub directory <path> (default is
+	                         "$libdir").
+	  -m, --module=<NAME>    Pre-load specified grub module.
 	                         This option can set many times.
 	  -q, --quiet            Suppress additional diagnostic.
 	  -r, --root=<UUID>      UUID of the ROOT filesystem.
 	  -S, --swap-part        Add SWAP partition before ROOT.
-	  -s, --secure-boot      Use ALT shim's for Secure Boot.
-	  -t, --target=<arch>    Use specified target architecture.
-	  -u, --uefi-only        Make UEFI-only boottable system.
+	  -s, --secure-boot      Use ALT shim's for UEFI Secure Boot.
+	  -t, --target=<ARCH>    Use specified target architecture: i586,
+	                         x86_64, aarch64, armh, ppc64le or e2k/v4.
+	  -u, --uefi-only        Make UEFI-only boottable system on x86.
 	  -v, --version          Show this program version and exit.
 	  -h, --help             Show this help message and exit.
 
@@ -225,9 +228,9 @@ prepare_boot_dirs() {
 		cp -Lf $v -- \
 			/usr/share/grub/unicode.pf2 \
 			"$sysdir/boot/grub/fonts/"
-	( echo "# GRUB Environment Block"
+	{ echo "# GRUB Environment Block"
 	  dd if=/dev/zero bs=999 count=1 |sed 's,.,#,g'
-	) > "$sysdir/boot/grub/grubenv" 2>/dev/null
+	} > "$sysdir/boot/grub/grubenv" 2>/dev/null
 }
 
 copy_target_files() {
@@ -277,7 +280,7 @@ prepare_bios() {
 	mbr="$partsdir/$target-boot.img"
 	cp -Lf $v -- "$libdir/$target/boot.img" "$mbr"
 
-	( # The offset of KERNEL_SECTOR at 0x05C, 4 bytes
+	{ # The offset of KERNEL_SECTOR at 0x05C, 4 bytes
 	  printf "\x01\x00\x00\x00" |dd bs=1 seek=92 count=4 conv=notrunc of="$mbr"
 	  # The offset of BOOT_DRIVE_CHECK at 0x066, 2 bytes
 	  printf "\x90\x90" |dd bs=1 seek=102 count=2 conv=notrunc of="$mbr"
@@ -285,7 +288,7 @@ prepare_bios() {
 	  dd if=/dev/urandom bs=1 seek=440 count=4 conv=notrunc of="$mbr"
 	  # The Copy-Protected flag at 0x1BC, 2 bytes
 	  printf "\x00\x00" |dd bs=1 seek=444 count=2 conv=notrunc of="$mbr"
-	) >/dev/null 2>&1
+	} >/dev/null 2>&1
 
 	cmd="$mki --directory '$libdir/$target' --prefix '$prefix'"
 	cmd="$cmd --output '$partsdir/$target-core.img'"

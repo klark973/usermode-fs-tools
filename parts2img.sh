@@ -305,7 +305,7 @@ verbose "Total image size: %s %s" "$imgsize" "MiB"
 
 # Unite all partitions
 if [ $gptlabel -eq 0 ]; then
-	verbose "Writing MBR and boot sector..."
+	verbose "Writing MBR and boot loader code..."
 	align_part MBR.img $imgsize
 	sfdisk -X dos -W always -q -- MBR.img <LAYOUT
 	align_part MBR.img 1

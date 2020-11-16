@@ -48,7 +48,7 @@ Requires: mtools
 This package contains vfat filesystem utilities.
 
 %package -n usermode-image-tools
-Summary: User-mode boot loader and image utilities
+Summary: User-mode boot loader and disk image utilities
 Group: File tools
 
 Requires: coreutils
@@ -75,7 +75,7 @@ Requires: grub-ieee1275
 %endif
 
 %description -n usermode-image-tools
-This package contains user-mode boot loader and image utilities.
+This package contains user-mode boot loader and disk image utilities.
 
 %prep
 %setup
