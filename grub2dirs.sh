@@ -18,6 +18,7 @@ alt_cert="/etc/pki/uefi/altlinux.cer"
 alt_shimx64="/usr/lib/shim/shimx64.efi.signed"
 alt_shimia32="/usr/lib/shim/shimia32.efi.signed"
 modules="ext2"
+foreign=
 rootuuid=
 dualboot=0
 biosboot=0
@@ -48,14 +49,16 @@ show_help() {
 	  -d, --dual-boot        Add both 32-bit and 64-bit UEFI firmware
 	                         boot loaders for 64-bit target system,
 	                         such as x86_64 or aarch64.
+	  -f, --foreign=<PATH>   Use alternate root path for search
+	                         required source files.
 	  -g, --guid-gpt         Use GUID/GPT disk label instead BIOS/MBR.
 	  -l, --libdir=<PATH>    Use images and modules under specified
-	                         grub directory <path> (default is
+	                         grub directory <PATH> (default is
 	                         "$libdir").
 	  -m, --module=<NAME>    Pre-load specified grub module.
 	                         This option can set many times.
 	  -q, --quiet            Suppress additional diagnostic.
-	  -r, --root=<UUID>      UUID of the ROOT filesystem.
+	  -U, --uuid=<UUID>      UUID of the ROOT filesystem.
 	  -S, --swap-part        Add SWAP partition before ROOT.
 	  -s, --secure-boot      Use ALT shim's for UEFI Secure Boot.
 	  -t, --target=<ARCH>    Use specified target architecture: i586,
@@ -110,8 +113,8 @@ spawn() {
 }
 
 parse_args() {
-	local s_opts="+bdgl:m:qr:Sst:U:uvh"
-	local l_opts="bios-only,dual-boot,guid-gpt,libdir:,module:,quiet,root:"
+	local s_opts="+bdf:gl:m:qr:Sst:U:uvh"
+	local l_opts="bios-only,dual-boot,foreign:,guid-gpt,libdir:,module:,quiet,root:"
 	      l_opts="$l_opts,swap-part,secure-boot,target:,uefi-only,uuid:,version,help"
 	local msg="Invalid command-line usage, try '-h' for help."
 
@@ -130,15 +133,29 @@ parse_args() {
 			uefiboot=1
 			dualboot=1
 			;;
+		-f|--foreign)
+			[ -n "${2-}" ] ||
+				fatal "$msg"
+			[ -d "$2" ] ||
+				fatal "Foreign root directory not found: '%s'." "$2"
+			foreign="$(realpath -- "$2")"
+			libdir="$foreign/usr/lib64/grub"
+			[ -d "$libdir" ] ||
+				libdir="$foreign/usr/lib/grub"
+			alt_cert="${foreign}${alt_cert}"
+			alt_shimx64="${foreign}${alt_shimx64}"
+			alt_shimia32="${foreign}${alt_shimia32}"
+			shift
+			;;
 		-g|--guid-gpt)
 			gptlabel=1
 			;;
 		-l|--libdir)
 			[ -n "${2-}" ] ||
 				fatal "$msg"
-			[ -d "$2" ] ||
-				fatal "Directory not found: '%s'." "$2"
-			libdir="$(realpath -- "$2")"
+			[ -d "${foreign}$2" ] ||
+				fatal "Library directory not found: '%s'." "$2"
+			libdir="$(realpath -- "${foreign}$2")"
 			shift
 			;;
 		-m|--module)
@@ -231,6 +248,8 @@ parse_args() {
 }
 
 prepare_boot_dirs() {
+	local src=
+
 	if [ $uefiboot -ne 0 ]; then
 		mkdir $v -p -m755 -- "$efidir/EFI/BOOT"
 		mkdir $v -p -m755 -- "$sysdir/boot/efi"
@@ -240,12 +259,13 @@ prepare_boot_dirs() {
 		configfile \$prefix/grub.cfg
 		EOF
 	fi
+
 	mkdir $v -p -m755 -- "$sysdir/boot/grub/fonts"
 	mkdir $v -p -m755 -- "$sysdir/boot/grub/locale"
-	[ ! -s /usr/share/grub/unicode.pf2 ] ||
-		cp -Lf $v -- \
-			/usr/share/grub/unicode.pf2 \
-			"$sysdir/boot/grub/fonts/"
+	[ ! -s "$foreign/boot/grub/fonts/unicode.pf2" ] ||
+		src="$foreign/boot/grub/fonts/unicode.pf2"
+	[ -z "$src" ] ||
+		cp -Lf $v -- "$src" "$sysdir/boot/grub/fonts/"
 	{ echo "# GRUB Environment Block"
 	  dd if=/dev/zero bs=999 count=1 |sed 's,.,#,g'
 	} > "$sysdir/boot/grub/grubenv" 2>/dev/null
@@ -355,11 +375,13 @@ setup_arm32() {
 
 copy_signed_binary() {
 	local src= dest="$1"; shift
-	local pesign="$(command -v pesign)"
+	local pesign="$(command -v pesign ||:)"
 
 	for src in "$@"; do
 		[ -s "$src" ] ||
 			continue
+		[ -n "$pesign" ] ||
+			break
 		$pesign -S -i "$src" 2>&1 |grep -qs 'certificate address is ' ||
 			continue
 		break
@@ -403,7 +425,7 @@ x86_64)	# Require separate EFI partition and GRUB installed
 			fatal "$no_shim"
 		[ -s "$alt_cert" ] ||
 			fatal "$no_cert"
-		command -v pesign >/dev/null ||
+		[ -n "$foreign" ] || command -v pesign >/dev/null ||
 			fatal "$no_sign"
 	fi
 
@@ -434,8 +456,8 @@ x86_64)	# Require separate EFI partition and GRUB installed
 		else
 			copy_signed_binary \
 				"$efidir/EFI/BOOT/grubia32.efi" \
-				"/usr/lib64/efi/grubia32sb.efi" \
-				"/usr/lib64/efi/grubia32.efi" \
+				"$foreign/usr/lib64/efi/grubia32sb.efi" \
+				"$foreign/usr/lib64/efi/grubia32.efi" \
 				"$partsdir/$target-core.efi"
 			cp -Lf $v -- \
 				"$alt_shimia32" \
@@ -469,8 +491,8 @@ x86_64)	# Require separate EFI partition and GRUB installed
 		else
 			copy_signed_binary \
 				"$efidir/EFI/BOOT/grubx64.efi" \
-				"/usr/lib64/efi/grubx64sb.efi" \
-				"/usr/lib64/efi/grubx64.efi" \
+				"$foreign/usr/lib64/efi/grubx64sb.efi" \
+				"$foreign/usr/lib64/efi/grubx64.efi" \
 				"$partsdir/$target-core.efi"
 			cp -Lf $v -- \
 				"$alt_shimx64" \
