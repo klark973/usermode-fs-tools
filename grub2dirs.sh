@@ -29,9 +29,12 @@ partsdir=
 v="-v"
 
 case "$platform" in
-i[3-6]86|x86_64)
-	biosboot=1
+x86_64)	biosboot=1
 	uefiboot=1
+	;;
+i[3-6]86)
+	biosboot=1
+	platform="i586"
 	;;
 esac
 
@@ -166,17 +169,24 @@ parse_args() {
 			[ -n "${2-}" ] ||
 				fatal "$msg"
 			case "$2" in
-			i[3-6]86|x86_64)
-				biosboot=1
+			x86_64)	biosboot=1
 				uefiboot=1
+				platform="$2"
+				;;
+			i[3-6]86)
+				biosboot=1
+				uefiboot=0
+				dualboot=0
+				secureboot=0
+				platform="i586"
 				;;
 			*)	biosboot=0
 				uefiboot=0
 				dualboot=0
 				secureboot=0
+				platform="$2"
 				;;
 			esac
-			platform="$2"
 			shift
 			;;
 		-U|--uuid)
