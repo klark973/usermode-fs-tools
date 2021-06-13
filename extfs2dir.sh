@@ -123,7 +123,7 @@ if [ "$(id -u)" = "0" ]; then
 	prefix=
 fi
 
-verbose "Option '-q' turn off verbose diagnostic."
+verbose "Option '-q' turns off verbose diagnostic."
 
 verbose "progname='$progname'"
 verbose "prefix='$prefix'"

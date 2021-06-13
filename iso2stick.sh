@@ -650,7 +650,7 @@ export PATH="/sbin:/usr/sbin:/bin:/usr/bin"
 
 parse_args "$@"
 
-verbose "Option '-q' turn off verbose diagnostic."
+verbose "Option '-q' turns off verbose diagnostic."
 
 verbose "progname='$progname'"
 verbose "version='{VERSION}'"
@@ -662,6 +662,8 @@ verbose "repack='$repack'"
 verbose "target='$target'"
 verbose "capacity=$capacity"
 verbose "reserved=$reserved"
+verbose "keepboot=$keepboot"
+verbose "keepgrub=$keepgrub"
 verbose "dualboot=$dualboot"
 verbose "biosboot=$biosboot"
 verbose "uefiboot=$uefiboot"
@@ -1048,7 +1050,7 @@ printf "%s %s %s\n" "$progname" "{VERSION}" \
 	"$(date +%F)" > sys-part/.disk/repacked
 chmod $v -- 0644 sys-part/.disk/repacked
 
-# Overwrite disk contents by files from user-specified directory
+# Overwrite disk contents by files from the user-specified directory
 if [ -n "$datadir" ]; then
 	verbose "Adding user data files..."
 	if [ ! -d "$datadir/sys-part" ]; then

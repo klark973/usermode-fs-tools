@@ -230,7 +230,7 @@ export PATH="/sbin:/usr/sbin:/bin:/usr/bin"
 
 parse_args "$@"
 
-verbose "Option '-q' turn off verbose diagnostic."
+verbose "Option '-q' turns off verbose diagnostic."
 
 verbose "progname='$progname'"
 verbose "capacity=$capacity"
