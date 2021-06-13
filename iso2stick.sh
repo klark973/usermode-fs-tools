@@ -422,7 +422,8 @@ set_stages() {
 write_e2k_menu_entry() {
 	local entry="$1" kargs="$2"
 	local tty="console=ttyS0,115200 console=tty0"
-	local src="automatic=method:disk,uuid:{SYSTEM_UUID}"
+	local src="root=bootchain bootchain=fg,altboot"
+	src="$src automatic=method:cdrom,uuid:{SYSTEM_UUID}"
 
 	cat >>loader.tpl <<-EOF
 	label=$entry
@@ -437,7 +438,8 @@ write_e2k_menu_entry() {
 write_grub_menu_entry() {
 	local entry="$1" hotkey="$2" id="$3" kargs="$4"
 	local kernel="/boot/vmlinuz initrd=/boot/full.cz"
-	local src="automatic=method:disk,uuid:{SYSTEM_UUID}"
+	local src="root=bootchain bootchain=fg,altboot"
+	src="$src automatic=method:cdrom,uuid:{SYSTEM_UUID}"
 	local classes="--class gnu-linux --class gnu --class os"
 
 	cat >>loader.tpl <<-EOF
@@ -528,7 +530,7 @@ write_grub_template() {
 
 	# When packing altinst/live stages, if there is more one language in
 	# the list, add this code snippet for select language. I don't know,
-	# who is author, we can find him in the mkimage-profile sources.
+	# who is author, we can find him in the mkimage-profiles sources.
 	#
 	if [ "$stage_files" != "rescue" ] && [ -n "${langlist//[^ ]/}" ]; then
 		cat >>loader.tpl <<-EOF
