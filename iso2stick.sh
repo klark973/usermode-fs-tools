@@ -25,6 +25,8 @@ capacity=
 reserved=
 no_clean=0
 pad_space=0
+keepboot=0
+keepgrub=0
 repack=
 media=
 image=
@@ -52,6 +54,7 @@ show_help() {
 	Usage: $progname [<options>...] [--] <iso9660> <image> [<size>]
 
 	Options:
+	  -B, --keep-boot        Use existings /boot directory.
 	  -b, --bios-only        Make BIOS-only boottable system on x86.
 	  -D, --datadir=<PATH>   Add specified files to the boot disk.
 	  -d, --dual-boot        Add both 32-bit and 64-bit UEFI firmware
@@ -59,6 +62,7 @@ show_help() {
 	                         such as x86_64 or aarch64.
 	  -e, --excludes=<FILE>  Set list for exclude files from ISO-9660.
 	  -f, --files=<FILE>     Set list for include files from ISO-9660.
+	  -G, --keep-grub        Use existings /boot/grub/grub.cfg config.
 	  -g, --guid-gpt         Use GUID/GPT disk label instead BIOS/MBR.
 	  -m, --mode=<MODE>      One of the followed repack modes: rescue,
 	                         deploy, install, live, install+rescue,
@@ -157,11 +161,11 @@ human2size() {
 }
 
 parse_args() {
-	local s_opts="+bD:de:f:gm:L:l:nPqr:S:sT:t:U:uvh"
+	local s_opts="+BbD:de:f:Ggm:L:l:nPqr:S:sT:t:U:uvh"
 	local l_opts="bios-only,datadir:,dual-boot,excludes:,files:,guid-gpt"
 	      l_opts="$l_opts,initlang:,mode:,lang:,no-clean,pad-space,quiet"
 	      l_opts="$l_opts,reserved:,swap:,secure-boot,timeout:,target:"
-	      l_opts="$l_opts,uuid:,uefi-only,version,help"
+	      l_opts="$l_opts,keep-boot,keep-grub,uuid:,uefi-only,version,help"
 	local msg="Invalid command-line usage, try '-h' for help."
 
 	l_opts=$(getopt -n "$progname" -o "$s_opts" -l "$l_opts" -- "$@") ||
@@ -169,6 +173,12 @@ parse_args() {
 	eval set -- "$l_opts"
 	while [ $# -gt 0 ]; do
 		case "$1" in
+		-B|--keep-boot)
+			keepboot=1
+			;;
+		-G|--keep-grub)
+			keepgrub=1
+			;;
 		-b|--bios-only)
 			biosboot=1
 			uefiboot=0
