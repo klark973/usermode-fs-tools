@@ -79,7 +79,7 @@ show_help() {
 	  -s, --secure-boot      Use ALT shim's for UEFI Secure Boot.
 	  -T, --timeout=<SECS>   Specify boot menu timeout, in seconds.
 	  -t, --target=<ARCH>    Use specified target architecture: i586,
-	                         x86_64, aarch64, armh, ppc64le or e2k/v4.
+	                         x86_64, aarch64, armh, ppc64le or e2k/v4/v5.
 	  -U, --uuid=<UUID>      Specify UUID of the ROOT filesystem.
 	  -u, --uefi-only        Make UEFI-only boottable system on x86.
 	  -v, --version          Show this program version and exit.
@@ -283,7 +283,7 @@ parse_args() {
 				secureboot=0
 				target="$2"
 				;;
-			e2k|e2kv4|ppc64le)
+			e2k|e2kv4|e2kv5|ppc64le)
 				biosboot=0
 				uefiboot=0
 				dualboot=0
@@ -694,6 +694,7 @@ kernel=
 initrd=
 iso_arch=
 os_type=
+e2k_target=0
 have_mrepo=0
 have_rescue=0
 have_deploy=0
@@ -713,6 +714,7 @@ else
 	*armh.iso)		iso_arch="armh";;
 	*e2k.iso)		iso_arch="e2k";;
 	*e2kv4.iso)		iso_arch="e2kv4";;
+	*e2kv5.iso)		iso_arch="e2kv5";;
 	*ppc64le.iso)		iso_arch="ppc64le";;
 	esac
 
@@ -720,6 +722,7 @@ else
 	alt-p7-*)		os_type="ALT p7 StarterKit";;
 	alt-p8-*)		os_type="ALT p8 StarterKit";;
 	alt-p9-*)		os_type="ALT p9 StarterKit";;
+	alt-p10-*)		os_type="ALT p10 StarterKit";;
 	regular-*)		os_type="ALT Regular Build";;
 	alt-kworkstation-*)	os_type="ALT Workstation K";;
 	alt-workstation-*)	os_type="ALT Workstation";;
@@ -775,7 +778,7 @@ verbose "iso_arch='$iso_arch'"
 if [ -n "$iso_arch" -a -n "$target" ]; then
 	if [ "$iso_arch" != "$target" ]; then
 		case "$iso_arch" in
-		x86_64|i586|aarch64|armh|e2k|e2kv4|ppc64le)
+		x86_64|i586|aarch64|armh|e2k|e2kv4|e2kv5|ppc64le)
 			fatal "Platform of this media and specified target mismatch."
 			;;
 		*)	fatal "Unsupported media platform: '%s'." "$iso_arch"
@@ -785,6 +788,11 @@ if [ -n "$iso_arch" -a -n "$target" ]; then
 fi
 [ -n "$target" ] ||
 	target="$iso_arch"
+case "$target" in
+e2k|e2kv4|e2kv5)
+	e2k_target=1
+	;;
+esac
 platform="$(uname -m)"
 case "$platform" in
 i[3-6]86) platform="i586";;
@@ -797,7 +805,7 @@ if [ "$platform" != "$target" ]; then
 fi
 verbose "target='$target'"
 verbose "foreign=$foreign"
-[ $foreign -eq 0 -o $have_mrepo -ne 0 -o "$target" = "e2k" -o "$target" = "e2kv4" ] ||
+[ $foreign -eq 0 -o $have_mrepo -ne 0 -o $e2k_target -ne 0 ] ||
 	fatal "Foreign mode require %s repository on the source media." "ALT Main"
 [ ! -s media/altinst ] ||
 	have_altinst=1
@@ -883,7 +891,7 @@ aarch64|armh)
 	mkdir -p -m755 $v efi-part/EFI/BOOT
 	mkdir -p -m755 $v sys-part/boot/efi
 	;;
-e2k|e2kv4)
+e2k|e2kv4|e2kv5)
 	[ ! -s media/alt0/vmlinux.0 ] ||
 		kernel="alt0/vmlinux.0"
 	[ ! -s media/alt0/full.cz ] ||
@@ -983,7 +991,7 @@ if [ -n "$excludes" ]; then
 	  aarch64|armh)
 		echo "EFI"
 		;;
-	  e2k|e2kv4)
+	  e2k|e2kv4|e2kv5)
 		echo "alt0"
 		echo "boot.conf"
 		;;
@@ -1032,7 +1040,7 @@ else
 	unset fname
 fi
 verbose "Copying Linux kernel and initial RAM-disk..."
-if [ "$target" = "e2k" -o "$target" = "e2kv4" ]; then
+if [ $e2k_target -ne 0 ]; then
 	$cmd  $v -- "media/$kernel" e2k-part/alt0/vmlinux.0
 	$cmd  $v -- "media/$initrd" e2k-part/alt0/full.cz
 	chmod $v -- 555 e2k-part/alt0/vmlinux.0
@@ -1107,7 +1115,7 @@ verbose "System partition UUID: '%s'." "$rootuuid"
 verbose "System partition label: '%s'." "$syslabel"
 
 # On Elbrus: only create boot loader configuration
-if [ "$target" = "e2k" -o "$target" = "e2kv4" ]; then
+if [ $e2k_target -ne 0 ]; then
 	write_loader_config "e2k_boot" "e2k-part/boot.conf"
 else
 	# Install GRUB on other platforms
