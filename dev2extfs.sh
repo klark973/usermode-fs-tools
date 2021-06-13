@@ -2,7 +2,7 @@
 ### This file is covered by the GNU General Public License
 ### version 3 or later.
 ###
-### Copyright (C) 2020, ALT Linux Team
+### Copyright (C) 2020-2021, ALT Linux Team
 ### Author: Leonid Krivoshein <klark@altlinux.org>
 
 ### dev2extfs {VERSION}
