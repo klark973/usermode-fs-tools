@@ -888,12 +888,6 @@ i586)	[ ! -s media/syslinux/alt0/vmlinuz ] ||
 	[ ! -s media/syslinux/alt0/full.cz ] ||
 		initrd="syslinux/alt0/full.cz"
 	;;
-ppc64le)
-	[ ! -s media/boot/vmlinuz ] ||
-		kernel="boot/vmlinuz"
-	[ ! -s media/boot/full.cz ] ||
-		initrd="boot/full.cz"
-	;;
 x86_64)	[ ! -s media/syslinux/alt0/vmlinuz ] ||
 		kernel="syslinux/alt0/vmlinuz"
 	[ ! -s media/syslinux/alt0/full.cz ] ||
@@ -909,6 +903,12 @@ x86_64)	[ ! -s media/syslinux/alt0/vmlinuz ] ||
 	;;
 esac
 #
+[ -n "$kernel" -o ! -s media/boot/vmlinuz ] ||
+	kernel="boot/vmlinuz"
+[ -n "$initrd" -o ! -s media/boot/full.cz ] ||
+	initrd="boot/full.cz"
+[ -n "$initrd" -o ! -s media/boot/initrd.img ] ||
+	initrd="boot/initrd.img"
 [ -n "$kernel" ] ||
 	fatal "Linux kernel not found on the source media."
 [ -n "$initrd" ] ||
