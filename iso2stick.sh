@@ -362,15 +362,19 @@ parse_args() {
 }
 
 cleanup() {
+	local rc="$?"
+
 	trap - EXIT; cd /
+
 	if [ -n "$workdir" -a $no_clean -eq 0 ]; then
 		verbose "Cleaning work directory..."
 		rm -rf --one-file-system -- "$workdir"
 	fi
+
+	return $rc
 }
 
 interrupt() {
-	trap - INT HUP TERM QUIT USR1 USR2
 	fatal "Programs execution was interrupted."
 }
 
