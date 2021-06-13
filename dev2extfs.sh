@@ -195,7 +195,8 @@ parse_device_table() {
 			uid=
 		[ "x$gid" != "x-" -a "x$gid" != "x0" ] ||
 			gid=
-		[ "${node%/*}/" != "$node" ] || node="${node%/*}"
+		[ "${node%/*}/" != "$node" ] ||
+			node="${node%/*}"
 		nodedir="${node%/*}"
 		nodedir="${nodedir:-/}"
 		nodename="${node##*/}"
