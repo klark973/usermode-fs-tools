@@ -423,7 +423,7 @@ write_e2k_menu_entry() {
 	local entry="$1" kargs="$2"
 	local tty="console=ttyS0,115200 console=tty0"
 	local src="root=bootchain bootchain=fg,altboot"
-	src="$src automatic=method:cdrom,uuid:{SYSTEM_UUID}"
+	src="$src automatic=method:disk,uuid:{SYSTEM_UUID}"
 
 	cat >>loader.tpl <<-EOF
 	label=$entry
@@ -439,7 +439,7 @@ write_grub_menu_entry() {
 	local entry="$1" hotkey="$2" id="$3" kargs="$4"
 	local kernel="/boot/vmlinuz initrd=/boot/full.cz"
 	local src="root=bootchain bootchain=fg,altboot"
-	src="$src automatic=method:cdrom,uuid:{SYSTEM_UUID}"
+	src="$src automatic=method:disk,uuid:{SYSTEM_UUID}"
 	local classes="--class gnu-linux --class gnu --class os"
 
 	cat >>loader.tpl <<-EOF
