@@ -763,6 +763,10 @@ else
 	fi
 	unset diskinfo
 fi
+[ -d media/boot ] ||
+	keepboot=0
+[ -s media/boot/grub/grub.cfg ] ||
+	keepgrub=0
 [ ! -d media/ALTLinux/RPMS.main ] ||
 	have_mrepo=1
 [ ! -s media/.disk/arch ] ||
@@ -925,13 +929,13 @@ esac
 	initrd="boot/full.cz"
 [ -n "$initrd" -o ! -s media/boot/initrd.img ] ||
 	initrd="boot/initrd.img"
-[ -n "$kernel" ] ||
+[ -n "$kernel" -o $keepgrub -ne 0 ] ||
 	fatal "Linux kernel not found on the source media."
-[ -n "$initrd" ] ||
+[ -n "$initrd" -o $keepgrub -ne 0 ] ||
 	fatal "Initial RAM-disk not found on the source media."
 verbose "Detected OS Type: '%s'." "$os_type"
-verbose "Linux kernel image: '%s'." "$kernel"
-verbose "Initial RAM-disk image: '%s'." "$initrd"
+verbose "Linux kernel image: '%s'." "${kernel:-/boot}"
+verbose "Initial RAM-disk image: '%s'." "${initrd:-/boot}"
 verbose "ALT stage2 files: '%s'." "$stage_files"
 verbose "Target platform: '%s'." "$target"
 
@@ -989,19 +993,27 @@ if [ -n "$excludes" ]; then
 	  echo "mediacheck"
 	  case "$target" in
 	  aarch64|armh)
+		[ $keepboot -ne 0 ] ||
+			echo "boot"
 		echo "EFI"
 		;;
 	  e2k|e2kv4|e2kv5)
 		echo "alt0"
 		echo "boot.conf"
 		;;
-	  i586)	echo "syslinux"
+	  i586)
+		[ $keepboot -ne 0 ] ||
+			echo "boot"
+		echo "syslinux"
 		;;
 	  ppc64le)
-		echo "boot"
+		[ $keepboot -ne 0 ] ||
+			echo "boot"
 		echo "ppc"
 		;;
 	  x86_64)
+		[ $keepboot -ne 0 ] ||
+			echo "boot"
 		echo "EFI"
 		echo "syslinux"
 		;;
@@ -1021,6 +1033,8 @@ else
 			echo "ALTLinux"
 		;;
 	  esac
+	  [ ! -d media/boot -o $keepboot -eq 0 ] ||
+		echo "boot"
 	  [ -z "$includes" ] ||
 		cat "$includes"
 	} > includes.lst
@@ -1039,18 +1053,32 @@ else
 	done
 	unset fname
 fi
-verbose "Copying Linux kernel and initial RAM-disk..."
+#
 if [ $e2k_target -ne 0 ]; then
+	verbose "Copying Linux kernel and initial RAM-disk..."
 	$cmd  $v -- "media/$kernel" e2k-part/alt0/vmlinux.0
 	$cmd  $v -- "media/$initrd" e2k-part/alt0/full.cz
 	chmod $v -- 555 e2k-part/alt0/vmlinux.0
 	chmod $v -- 444 e2k-part/alt0/full.cz
 else
+	if [ -d sys-part/boot/grub ]; then
+		verbose "Removing GRUB-CD installation..."
+		rm -rf $v sys-part/boot/grub
+	fi
+
 	mkdir -p -m755 $v sys-part/boot/grub
-	$cmd  $v -- "media/$kernel" sys-part/boot/vmlinuz
-	$cmd  $v -- "media/$initrd" sys-part/boot/full.cz
-	chmod $v -- 444 sys-part/boot/vmlinuz
-	chmod $v -- 444 sys-part/boot/full.cz
+
+	if [ $keepgrub -ne 0 ]; then
+		verbose "Copying existings grub configuration..."
+		cp -Lf $v media/boot/grub/grub.cfg sys-part/boot/grub/
+	fi
+	if [ $keepboot -eq 0 ]; then
+		verbose "Copying Linux kernel and initial RAM-disk..."
+		$cmd  $v -- "media/$kernel" sys-part/boot/vmlinuz
+		$cmd  $v -- "media/$initrd" sys-part/boot/full.cz
+		chmod $v -- 444 sys-part/boot/vmlinuz
+		chmod $v -- 444 sys-part/boot/full.cz
+	fi
 fi
 unset kernel initrd
 
@@ -1161,7 +1189,9 @@ else
 	fi
 
 	# Create grub configuration
-	write_loader_config "grub" "sys-part/boot/grub/grub.cfg"
+	if [ $keepgrub -eq 0 ]; then
+		write_loader_config "grub" "sys-part/boot/grub/grub.cfg"
+	fi
 fi
 
 # Execute user-defined hook's...
