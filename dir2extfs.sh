@@ -25,6 +25,7 @@ passthrough=
 ext4new=0
 m_opt=
 inodes=
+excludes=
 
 
 show_help() {
@@ -57,6 +58,7 @@ show_help() {
 	  -a, --append           Add files to an existing extfs image file,
 	                         mke2fs options can't be used in append mode.
 	  -d  <filename>         Specify devices table for populate /dev nodes.
+	  -e, --exclude <path>   Specify path to exclude from image.
 	  -M, --mindev           Populate minimalistic /dev nodes.
 	  -n, --no-clean         Keep temporary files on exit.
 	  -q, --quiet            Suppress additional diagnostic.
@@ -96,6 +98,7 @@ autoreq() {
 	resize2fs
 	mke2fs
 	mktemp
+	sed
 }
 
 verbose() {
@@ -131,9 +134,14 @@ human2size() {
 	printf "%s" "$rv"
 }
 
+canon_path() {
+	local p="$1"; shift
+	echo "$p" | sed -E -e 's|//+|/|g' -e 's|^/||' -e 's|/*$||'
+}
+
 parse_args() {
-	local s_opts="+aC:d:f:G:g:I:i:L:MnN:o:qr:T:t:U:vh"
-	local l_opts="append,mindev,no-clean,quiet,version,help"
+	local s_opts="+aC:d:f:e:G:g:I:i:L:MnN:o:qr:T:t:U:vh"
+	local l_opts="append,exclude:,mindev,no-clean,quiet,version,help"
 	local msg="Invalid command-line usage, try '-h' for help."
 
 	l_opts=$(getopt -n "$progname" -o "$s_opts" -l "$l_opts" -- "$@") ||
@@ -151,6 +159,10 @@ parse_args() {
 			[ -n "${2-}" ] ||
 				fatal "$msg"
 			passthrough="$passthrough $1 \"$2\""
+			shift
+			;;
+		-e|--exclude)
+			excludes="$excludes $(canon_path "$2")"
 			shift
 			;;
 		-a|--append)
@@ -244,11 +256,19 @@ parse_args() {
 
 # cp -r
 rpush() {
+	local dirname="${1-}"
 	local entry= target=
+	local path=
+	local exclude=
 
 	for entry in *; do
 		[ "$entry" != '*' ] ||
 			continue
+		path="${dirname:+$dirname/}$entry"
+		for exclude in $excludes; do
+			[ "$path" != "$exclude" ] ||
+				continue 2
+		done
 		if [ -L "$entry" ]; then
 			if [ $quiet -ne 0 ]; then
 				target="$(readlink -ns -- "$entry")"
@@ -263,7 +283,7 @@ rpush() {
 			echo "lcd \"$entry\""
 			echo "cd \"$entry\""
 			cd "$entry/"
-			rpush
+			rpush "$path"
 			cd ..
 			echo "cd .."
 			echo "lcd .."
@@ -386,6 +406,9 @@ if [ $append -ne 0 -o $new_mke2fs -eq 0 ]; then
 	use_fallback=1
 else
 	use_fallback=0
+fi
+if [ -n "$excludes" ]; then
+	use_fallback=1
 fi
 verbose "use_fallback=$use_fallback"
 
