@@ -282,7 +282,7 @@ rpush() {
 			echo "mkdir \"$entry\""
 			echo "lcd \"$entry\""
 			echo "cd \"$entry\""
-			cd "$entry/"
+			cd -- "$entry/"
 			rpush "$path"
 			cd ..
 			echo "cd .."
