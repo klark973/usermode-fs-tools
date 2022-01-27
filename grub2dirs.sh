@@ -58,12 +58,12 @@ show_help() {
 	  -m, --module=<NAME>    Pre-load specified grub module.
 	                         This option can set many times.
 	  -q, --quiet            Suppress additional diagnostic.
-	  -U, --uuid=<UUID>      UUID of the ROOT filesystem.
 	  -S, --swap-part        Add SWAP partition before ROOT.
 	  -s, --secure-boot      Use ALT shim's for UEFI Secure Boot.
 	  -t, --target=<ARCH>    Use specified target architecture: i586,
-	                         x86_64, aarch64, armh, ppc64le or e2k/v4.
+	                         x86_64, aarch64, armh, ppc64le or e2k/v4/v5.
 	  -u, --uefi-only        Make UEFI-only boottable system on x86.
+	  -U, --uuid=<UUID>      UUID of the ROOT filesystem.
 	  -v, --version          Show this program version and exit.
 	  -h, --help             Show this help message and exit.
 
@@ -206,15 +206,15 @@ parse_args() {
 			esac
 			shift
 			;;
+		-u|--uefi-only)
+			biosboot=0
+			uefiboot=1
+			;;
 		-U|--uuid)
 			[ -n "${2-}" ] ||
 				fatal "$msg"
 			rootuuid="$2"
 			shift
-			;;
-		-u|--uefi-only)
-			biosboot=0
-			uefiboot=1
 			;;
 		-v|--version)
 			show_version
