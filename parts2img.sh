@@ -10,6 +10,7 @@
 
 # Defaults
 progname="${0##*/}"
+norootfs=0
 no_clean=0
 gptlabel=0
 partsdir=
@@ -26,6 +27,7 @@ show_help() {
 	Options:
 	  -g, --guid-gpt         Use GPT disk label instead MBR.
 	  -n, --no-clean         Keep temporary files on exit.
+	      --no-rootfs        Do not use 'sys-part' sub-directory.
 	  -q, --quiet            Suppress additional diagnostic.
 	  -s, --swap=<size>      Specify SWAP partition size, in MiB.
 	  -v, --version          Show this program version and exit.
@@ -88,7 +90,7 @@ human2size() {
 
 parse_args() {
 	local s_opts="+gnqs:vh"
-	local l_opts="guid-gpt,no-clean,quiet,swap:,version,help"
+	local l_opts="guid-gpt,no-clean,no-rootfs,quiet,swap:,version,help"
 	local msg="Invalid command-line usage, try '-h' for help."
 
 	l_opts=$(getopt -n "$progname" -o "$s_opts" -l "$l_opts" -- "$@") ||
@@ -101,6 +103,9 @@ parse_args() {
 			;;
 		-n|--no-clean)
 			no_clean=1
+			;;
+		--no-rootfs)
+			norootfs=1
 			;;
 		-q|--quiet)
 			v=
@@ -136,9 +141,10 @@ parse_args() {
 		imgfile="$1"
 		shift
 	fi
+
 	[ $# -eq 0 ] ||
 		fatal "$msg"
-	[ -s "$partsdir/SYS.img" ] ||
+	[ $norootfs -ne 0 ] || [ -s "$partsdir/SYS.img" ] ||
 		fatal "ROOT partition image (SYS.img) not found."
 	tmpimage="$partsdir/probe.img"
 }
@@ -259,36 +265,42 @@ if [ -n "$swapsize" ]; then
 fi
 
 # ROOT partition
+if [ -s SYS.img ]; then
 	align_part SYS.img
 	plist="$plist SYS.img"
 	n_parts="$((1 + $n_parts))"
 	psize="$(get_part_size SYS.img)"
 	imgsize="$(($imgsize + $psize))"
 	verbose "ROOT size: %s %s" "$psize" "MiB"
+
 	if [ ! -s HOME.img ]; then
-		if [ $haveboot -eq 0 ]; then
+		if [ $haveboot -ne 0 ]; then
+			echo ",,L" >> LAYOUT
+		else
 			echo ",,L,*" >> LAYOUT
 			haveboot=$n_parts
-		else
-			echo ",,L" >> LAYOUT
 		fi
 	else
 		[ $gptlabel -ne 0 -o $haveboot -ne 0 -o $n_parts -lt 4 ] ||
 			fatal "Only GUID/GPT supports over 4 primary partitions."
-		if [ $haveboot -eq 0 ]; then
+		if [ $haveboot -ne 0 ]; then
+			echo ",${psize}M,L" >> LAYOUT
+		else
 			echo ",${psize}M,L,*" >> LAYOUT
 			haveboot=$n_parts
-		else
-			echo ",${psize}M,L" >> LAYOUT
 		fi
+	fi
+fi
 
 # HOME partition
+if [ -s HOME.img ]; then
 	align_part HOME.img
 	plist="$plist HOME.img"
 	n_parts="$((1 + $n_parts))"
 	psize="$(get_part_size HOME.img)"
 	verbose "HOME size: %s %s" "$psize" "MiB"
 	imgsize="$(($imgsize + $psize))"
+
 	if [ $gptlabel -ne 0 ]; then
 		echo ",,H" >> LAYOUT
 	else
