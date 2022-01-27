@@ -259,30 +259,30 @@ if [ -n "$swapsize" ]; then
 fi
 
 # ROOT partition
-align_part SYS.img
-plist="$plist SYS.img"
-n_parts="$((1 + $n_parts))"
-psize="$(get_part_size SYS.img)"
-imgsize="$(($imgsize + $psize))"
-verbose "ROOT size: %s %s" "$psize" "MiB"
-if [ ! -s HOME.img ]; then
-	if [ $haveboot -eq 0 ]; then
-		echo ",,L,*" >> LAYOUT
-		haveboot=$n_parts
+	align_part SYS.img
+	plist="$plist SYS.img"
+	n_parts="$((1 + $n_parts))"
+	psize="$(get_part_size SYS.img)"
+	imgsize="$(($imgsize + $psize))"
+	verbose "ROOT size: %s %s" "$psize" "MiB"
+	if [ ! -s HOME.img ]; then
+		if [ $haveboot -eq 0 ]; then
+			echo ",,L,*" >> LAYOUT
+			haveboot=$n_parts
+		else
+			echo ",,L" >> LAYOUT
+		fi
 	else
-		echo ",,L" >> LAYOUT
-	fi
-else
-	[ $gptlabel -ne 0 -o $haveboot -ne 0 -o $n_parts -lt 4 ] ||
-		fatal "Only GUID/GPT supports over 4 primary partitions."
-	if [ $haveboot -eq 0 ]; then
-		echo ",${psize}M,L,*" >> LAYOUT
-		haveboot=$n_parts
-	else
-		echo ",${psize}M,L" >> LAYOUT
-	fi
+		[ $gptlabel -ne 0 -o $haveboot -ne 0 -o $n_parts -lt 4 ] ||
+			fatal "Only GUID/GPT supports over 4 primary partitions."
+		if [ $haveboot -eq 0 ]; then
+			echo ",${psize}M,L,*" >> LAYOUT
+			haveboot=$n_parts
+		else
+			echo ",${psize}M,L" >> LAYOUT
+		fi
 
-	# HOME partition
+# HOME partition
 	align_part HOME.img
 	plist="$plist HOME.img"
 	n_parts="$((1 + $n_parts))"
