@@ -135,8 +135,7 @@ human2size() {
 }
 
 canon_path() {
-	local p="$1"; shift
-	echo "$p" | sed -E -e 's|//+|/|g' -e 's|^/||' -e 's|/*$||'
+	echo "$1" |sed -E -e 's|//+|/|g' -e 's|^/||' -e 's|/*$||'
 }
 
 parse_args() {
@@ -402,13 +401,10 @@ unset major minor
 verbose "new_mke2fs=$new_mke2fs"
 [ $ext4new -eq 0 -o $new_mke2fs -ne 0 ] ||
 	fatal "ext4new requre e2fsprogs >= 1.43, try ext4 instead."
-if [ $append -ne 0 -o $new_mke2fs -eq 0 ]; then
+if [ $append -ne 0 ] || [ $new_mke2fs -eq 0 ] || [ -n "$excludes" ]; then
 	use_fallback=1
 else
 	use_fallback=0
-fi
-if [ -n "$excludes" ]; then
-	use_fallback=1
 fi
 verbose "use_fallback=$use_fallback"
 
