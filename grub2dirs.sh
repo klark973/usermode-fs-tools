@@ -20,6 +20,7 @@ alt_shimia32="/usr/lib/shim/shimia32.efi.signed"
 modules="ext2"
 foreign=
 rootuuid=
+norootfs=0
 dualboot=0
 biosboot=0
 uefiboot=0
@@ -57,6 +58,7 @@ show_help() {
 	                         "$libdir").
 	  -m, --module=<NAME>    Pre-load specified grub module.
 	                         This option can set many times.
+	  -n, --no-rootfs        Do not use 'sys-part' sub-directory.
 	  -q, --quiet            Suppress additional diagnostic.
 	  -S, --swap-part        Add SWAP partition before ROOT.
 	  -s, --secure-boot      Use ALT shim's for UEFI Secure Boot.
@@ -80,6 +82,7 @@ show_version() {
 autoreq() {
 	cat
 	dd
+	hexdump
 	getopt
 	grep
 	mkdir
@@ -113,9 +116,10 @@ spawn() {
 }
 
 parse_args() {
-	local s_opts="+bdf:gl:m:qr:Sst:U:uvh"
-	local l_opts="bios-only,dual-boot,foreign:,guid-gpt,libdir:,module:,quiet,root:"
-	      l_opts="$l_opts,swap-part,secure-boot,target:,uefi-only,uuid:,version,help"
+	local s_opts="+bdf:gl:m:nqr:Sst:U:uvh"
+	local l_opts="bios-only,dual-boot,foreign:,guid-gpt,libdir:,module:"
+	      l_opts="$l_opts,no-rootfs,quiet,root:,swap-part,secure-boot"
+	      l_opts="$l_opts,target:,uefi-only,uuid:,version,help"
 	local msg="Invalid command-line usage, try '-h' for help."
 
 	l_opts=$(getopt -n "$progname" -o "$s_opts" -l "$l_opts" -- "$@") ||
@@ -163,6 +167,9 @@ parse_args() {
 				fatal "$msg"
 			modules="$modules $2"
 			shift
+			;;
+		-n|--no-rootfs)
+			norootfs=1
 			;;
 		-q|--quiet)
 			v=
@@ -232,10 +239,27 @@ parse_args() {
 	done
 
 	if [ $uefiboot -eq 0 ]; then
-		dualboot=0; secureboot=0
+		dualboot=0; secureboot=0; norootfs=0
 	elif [ -z "$rootuuid" ]; then
-		read rootuuid < /proc/sys/kernel/random/uuid
+		if [ $norootfs -eq 0 ]; then
+			# ext2/3/4 UUID style
+			read -r rootuuid </proc/sys/kernel/random/uuid
+		else
+			# vfat UUID style
+			local l="$(dd if=/dev/urandom bs=2 count=1 2>/dev/null |
+					hexdump -e '/1 "%x"' |
+					tr '[[:lower:]]' '[[:upper:]]')"
+			local r="$(dd if=/dev/urandom bs=2 count=1 2>/dev/null |
+					hexdump -e '/1 "%x"' |
+					tr '[[:lower:]]' '[[:upper:]]')"
+			rootuuid="$l-$r"
+		fi
 	fi
+
+	if [ $norootfs -ne 0 ]; then
+		modules="$modules fat"
+	fi
+
 	if [ $# -eq 1 ]; then
 		[ -n "$1" -a -d "$1" ] ||
 			fatal "$msg"
@@ -338,23 +362,30 @@ prepare_bios() {
 
 setup_x86() {
 	if [ $gptlabel -eq 0 ]; then
-		[ $uefiboot -eq 0 ] &&
+		[ $uefiboot -eq 0 -o $norootfs -ne 0 ] &&
 			sys_part=1 || sys_part=2
 		pttype="msdos"
 	else
-		[ $uefiboot -ne 0 -a $biosboot -ne 0 ] &&
-			sys_part=3 || sys_part=2
+		if [ $norootfs -ne 0 ]; then
+			sys_part=1
+		elif [ $uefiboot -ne 0 ] && [ $biosboot -ne 0 ]; then
+			sys_part=3
+		else
+			sys_part=2
+		fi
 		pttype="gpt"
 	fi
-	[ $swappart -eq 0 ] || sys_part="$((1 + $sys_part))"
+	[ $swappart -eq 0 ] || [ $norootfs -ne 0 ] ||
+		sys_part="$((1 + $sys_part))"
 	prefix="(,${pttype}${sys_part})/boot/grub"
 	[ $biosboot -eq 0 ] || prepare_bios
 }
 
 prepare_prefix() {
-	sys_part=2
+	[ $norootfs -eq 0 ] && sys_part=2 || sys_part=1
 	[ $gptlabel -eq 0 ] && pttype="msdos" || pttype="gpt"
-	[ $swappart -eq 0 ] || sys_part="$((1 + $sys_part))"
+	[ $swappart -eq 0 ] || [ $norootfs -ne 0 ] ||
+		sys_part="$((1 + $sys_part))"
 	prefix="(,${pttype}${sys_part})/boot/grub"
 }
 
@@ -400,6 +431,8 @@ parse_args "$@"
 umask 0022
 efidir="$partsdir/efi-part"
 sysdir="$partsdir/sys-part"
+[ $norootfs -eq 0 ] ||
+	sysdir="$efidir"
 mki="$(command -v grub-mkimage ||:)"
 err_type1="must be installed before run this program."
 err_type2="not supported by target platform."
